@@ -7,15 +7,17 @@
 typedef list<Vertex*>     AdjList;
 typedef AdjList::iterator AdjListIt;
 
-/**
- * TODO:
- */
+/*******************************************************************************
+ * Structure expressing an Adjacency Matrix for a graph G TODO:
+ ******************************************************************************/
 struct AdjMatrix
 {
-  int n;
+  int n;      //
+  Vertex** A; //
 
-  Vertex** A;
-
+  /**
+   * Default Constructor
+   */
   AdjMatrix(int n)
   {
     A = new Vertex*[n];
@@ -23,6 +25,9 @@ struct AdjMatrix
       A[i] = new Vertex[n];
   };
 
+  /**
+   * Retrieves the vertex at A[i][j]
+   */
   Vertex* get(int i, int j){ return &A[i][j];};
 
   void put(int i, int j, Vertex* v)
@@ -30,6 +35,9 @@ struct AdjMatrix
     A[i][j] = *v;
   };
 
+  /**
+   * Retrieves the verticies at A[i]
+   */
   Vertex* allfrom(int i)
   {
     Vertex* r = new Vertex[n];
@@ -38,6 +46,21 @@ struct AdjMatrix
 
     return r;
   };
+
+  /**
+   * Destructor
+   */
+  ~AdjMatrix()
+  {
+    if(A)
+    {
+      for(int i = 0; i < n; ++i)
+      {
+        if(A[i]) delete [] A[i];
+      }
+      delete [] A;
+    }
+  }
 };
 
 /*******************************************************************************
@@ -138,7 +161,9 @@ typedef VertexMap::value_type VertexMapType;
 
 /** Typedefs for Edge Containers **/
 typedef vector<Edge>  EdgeVector;
+typedef EdgeVector::iterator EdgeVectorIt;
 typedef vector<Edge*> EdgePtrVector;
+typedef EdgePtrVector::iterator EdgePtrVectorIt;
 
 /*******************************************************************************
  * Structure for representing a graph G = (V, E)
@@ -204,12 +229,14 @@ struct Graph
 
     if(!vvt->adj) vvt->adj = (AdjList*)& vit->second;
 
-    uvt->add_adj(vvt);
-    vvt->add_adj(uvt);
+    uvt->add_adj(vvt);                      //add uv by default
     E.push_back(Edge(&(*uvt), &(*vvt), w));
-    E.push_back(Edge(&(*vvt), &(*uvt), 0));
 
-    //TODO: Handle direction
+    if(!direct)                           //add vu if undirected
+    {
+      vvt->add_adj(uvt);
+      E.push_back(Edge(&(*vvt), &(*uvt), 0));
+    }
   };
 
   /**
@@ -224,16 +251,45 @@ struct Graph
     }
   };
 
-   /**
-    * Retrieves the edges connecting v to e in G
-    */
-   EdgePtrVector adjacent_edges(Vertex v)
-   {
-     EdgePtrVector ev;
-     for(size_t i = 0; i < E.size(); ++i)
-       if(E[i].v1->id == v.id) ev.push_back(&E[i]);
-     return ev;
-   };
+  /**
+   *
+   */
+  bool relax(Vertex & u, Vertex & v, int w)
+  {
+    bool ret = false;
+
+    if(direct)
+    {
+      VertexMapIt uit = VE.find(u),
+                  vit = VE.find(v);
+
+      if(uit != VE.end() && vit != VE.end())
+      {
+        Vertex *pv = (Vertex*) &vit->first,
+               *pu = (Vertex*) &uit->first;
+
+        if(pv->d > pu->d + w)
+        {
+          pv->d  = pu->d + w;
+          pv->pi = &(*pu);
+          ret = true;
+        }
+      }
+    }
+
+    return ret;
+  }
+
+  /**
+   * Retrieves the edges connecting v to e in G
+   */
+  EdgePtrVector adjacent_edges(Vertex v)
+  {
+    EdgePtrVector ev;
+    for(size_t i = 0; i < E.size(); ++i)
+      if(E[i].v1->id == v.id) ev.push_back(&E[i]);
+    return ev;
+  };
 
   /**
    * Retrieves the vertex adjacent to v on edge e
@@ -245,11 +301,40 @@ struct Graph
   Vertex* adjacent_vertex(Vertex v, Edge e) {return *e.v1 == v ? e.v2 : e.v1;};
 
   /**
-   * TODO:
+   * Removes the specified edge from E in G = VE
    */
-  bool remove_edge(int u, int v)
+  bool remove_edge(Vertex* v1, Vertex* v2)
   {
-    bool ret = true;
+    Edge e(v1, v2);
+    return remove_edge(e);
+  }
+
+  /**
+   * Removes the specified edge from E in G = VE
+   */
+  bool remove_edge(Edge & e)
+  {
+    bool ret = false;
+
+    EdgeVectorIt it = E.begin();
+    for( ; it != E.end() && !ret; ++it)
+    {
+      if(e == *it)
+      {
+        //remove adjacent vertices
+        VertexMapIt vit = VE.find(*(e.v1));
+        Vertex* v = (Vertex*) &vit->first;
+        if(vit != VE.end()) v->remove_adj(e.v2);
+        if(!direct)
+        {
+          vit = VE.find(*(e.v2));
+          v = (Vertex*) &vit->first;
+          if(vit != VE.end()) v->remove_adj(e.v1);
+        }
+        E.erase(it);
+        ret = true;
+      }
+    }
 
     return ret;
   };
