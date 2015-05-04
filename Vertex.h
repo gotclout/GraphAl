@@ -60,6 +60,8 @@ struct Vertex
 
   /**
    * Construct from id
+   *
+   * @param string pId is the unique identifier for this vertex
    */
   Vertex(string pId)
   {
@@ -73,17 +75,46 @@ struct Vertex
 
   /**
    * Adds a vertex to this vertexes adjaceny list
+   *
+   * @param Vertex* v is the vertex to be added
+   * @return bool true if the vertex is successfully added, false otherwise
    */
   bool add_adj(Vertex* & v)
   {
     bool ret = true;
-    if(v)
-      adj->push_back(v);
-    else
-      ret = false;
+
+    if(v) adj->push_back(v);
+    else ret = false;
 
     return ret;
   };
+
+  /**
+   * Remove the specified vertex from this vertexes adjaceny list
+   *
+   * @param Vertex* v is the vertex to be removed
+   * @return bool true if the vertex is successfully removed, false otherwise
+   */
+  bool remove_adj(Vertex* & v)
+  {
+    bool ret = false;
+
+    if(adj)
+    {
+      AdjListIt it = adj->begin();
+
+      while(it != adj->end() && !ret)
+      {
+        if(*it == v)
+        {
+          adj->erase(it);
+          ret = true;
+        }
+      }
+    };
+
+    return ret;
+  }
 
   /**
    * TODO: Copy/Assignment
@@ -160,7 +191,7 @@ struct Vertex
    */
   friend ostream& operator<< (ostream & o, const Vertex & pV)
   {
-    Vertex v = (Vertex) pV; //TODO
+    Vertex v = (Vertex) pV;
     return operator<<(o, v);
   };
   friend ostream& operator<< (ostream & o, Vertex & v)
@@ -171,7 +202,7 @@ struct Vertex
     {
       o << v.id << " Adjacent to Verticies: ";
       AdjListIt it = v.adj->begin();
-      for(size_t i =0; it != v.adj->end(); ++it, ++i)
+      for(size_t i = 0; it != v.adj->end(); ++it, ++i)
       {
         o << (*it)->id;
         if(i+1 != sz) o << ", ";
