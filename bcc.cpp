@@ -12,89 +12,79 @@ static int c = 0;
 static const char* ln =
   "--------------------------------------------------------------------------------\n";
 /**
- * Explores adjacent verticies tracking discovery times to detect bridges
+ * Explores adjacent verticies tracking discovery times to detect bccs
  * if a bridge is detected it will be added to a container
  *
  * @param Vertex* u is the vertex to visit
- * @param vector<Edge> is the collection of bridges
+ * @param vector<Edge> is the collection of bccs
  */
-int BICONNECTED_COMP_VISIT(Vertex* & u, vector<Edge> & bridges)
+int BCC_VISIT(Vertex* & u, vector<Edge> & bccs, list < vector<Edge> >& abccs)
 {
-  u->color  = eGray;
-  u->d      = ++t;
-  Vertex* v = 0;
-  int minDu = t, minDv, children = 0;
+  u->color    = eGray;
+  u->d = u->l = ++t;
+  Vertex* v   = 0;
+  int minDu   = t, minDv, children = 0;
 
-  cout << "DFS-BRIDGE-VISIT: time:" << t << ", Visiting u: " << *u << endl;
+  cout << "BCC-VISIT: time:"
+       << t << ", Visiting u: " << u->id << endl;
 
   for(AdjListIt uit = u->adj->begin(); uit != u->adj->end(); ++uit)
   {
     v = (*uit);
-    v->pi = &(*u);
-    cout << "DFS-BRIDGE-VISIT: time:" << t << ", Exploring Adjacent Vertex\n"
-         << "                  v: " << *v << endl;
+    cout << "BCC-VISIT: time:" << t << ", Exploring Adjacent Vertex"
+         << " v: " << v->id << endl;
 
     if(v->color == eWhite)
     {
       children++;
-      minDv = BICONNECTED_COMP_VISIT(v, bridges);
-      Edge bridge(u, v);
-      bridges.push_back(bridge);
-      //cout << "DFS-BRIDGE-VISIT: time:" << t << ", minDV:" << minDv << " ";
-      //if(minDv < minDu) cout << "<";
-      //else if(minDv == minDu) cout << "=";
-      //else cout << ">";
-      //cout << " minDU:" << minDu;
+      v->pi = &(*u);
+      Edge edg(u, v);
+      bccs.push_back(edg);
+      minDv = BCC_VISIT(v, bccs, abccs);
 
       u->l = min(u->l, v->l);
-      //minDu = min(minDu, minDv);
 
-      if( (u->d == 1 && children > 1) ||
-          (u->d > 1 && v->l >= u->d))
+      if( (u->d == 1 && children > 1) || (u->d > 1 && v->l >= u->d))
       {
-        while(bridges.back() != bridge)
+        vector<Edge> ve;
+        while(bccs.back().v1 != u || bccs.back().v2 != v)
         {
-          cout << bridges.back() << endl;
-          bridges.pop_back();
+          ve.push_back(bccs.back());
+          bccs.pop_back();
         }
-        cout << bridges.back() << endl;
-        bridges.pop_back();
+        ve.push_back(bccs.back());
+        bccs.pop_back();
+        abccs.push_back(ve);
         c++;
       }
-
-      /*if(minDv > minDu)
-      {
-        cout << ", Discovered Bridge:(" << u->id << ", " << v->id << ")\n";
-        Edge bridge(u, v);
-        bridges.push_back(bridge);
-      }
-      else cout << endl;*/
     }
-    else if(v != u->pi && v->d < minDu)
+    else if(v != u->pi && v->d < u->l)
     {
       minDu = v->d;
       u->l = min(u->l, v->d);
       Edge bridge(u, v);
-      bridges.push_back(bridge);
+      bccs.push_back(bridge);
     }
   }
 
   u->color = eBlack;
   u->f = ++t;
-  cout << "DFS-BRIDGE-VISIT: time:" << t << ", Finished u:" << *u << endl << ln;
+  cout << "BCC-VISIT: time:"
+       << t << ", Finished u:" << u->id << endl << ln;
 
   return minDu;
 }
 
 /**
- * Finds bridges in a graph
+ * Finds bccs in a graph
  *
- * @param Graph G is the graph for which bridges should be detected
- * @return vector<Edge> is the collection of edges that are bridges
+ * @param Graph G is the graph for which bccs should be detected
+ * @return vector<Edge> is the collection of edges that are bccs
  */
-vector<Edge> BICONNECTED_COMP(Graph & G)
+list < vector<Edge> > BICONNECTED_COMP(Graph & G)
 {
-  vector<Edge> bridges;
+  vector<Edge> bccs;
+  list< vector<Edge> > abccs;
   VertexMapIt vit = G.VE.begin();
   Vertex* u = 0;
 
@@ -104,8 +94,8 @@ vector<Edge> BICONNECTED_COMP(Graph & G)
     u = (Vertex*)&vit->first;
     u->color  = eWhite;
     u->pi     = NIL;
-    cout << "DFS-BRIDGE      : time:" << t << ", "
-         << "Initialized u:" << *u << endl;
+    cout << "BCC      : time:" << t << ", "
+         << "Initialized u:" << u->id << endl;
   }
 
   cout << ln;
@@ -114,33 +104,33 @@ vector<Edge> BICONNECTED_COMP(Graph & G)
   for(vit = G.VE.begin(); vit != G.VE.end(); ++vit)
   {
     u = (Vertex*)&vit->first;
-    cout << "DFS-BRIDGE      : time:" << t << ", ";
+    cout << "BCC      : time:" << t << ", ";
     if(u->color == eWhite)
     {
-      cout << "Visiting u:" << *u << endl;
-      BICONNECTED_COMP_VISIT(u, bridges);
+      cout << "Visiting u:" << u->id << endl;
+      BCC_VISIT(u, bccs, abccs);
     }
     else
-      cout << "Not Visiting u:" <<  *u << endl;
+      cout << "Not Visiting u:" <<  u->id << endl;
 
-    size_t sz = bridges.size(), j = 0;
-    while(sz > 0)
+    size_t sz = bccs.size(), j = 0;
+    vector<Edge> ev;
+    while(bccs.size() > 0)
     {
       j = 1;
-      cout << bridges.back() << endl;
-      bridges.pop_back();
-      --sz;
+      ev.push_back(bccs.back());
+      bccs.pop_back();
     }
     if(j)
     {
-      cout << endl;
+      abccs.push_back(ev);
       c++;
     }
   }
 
   cout << ln;
 
-  return bridges;
+  return abccs;
 }
 
 /**
@@ -148,19 +138,28 @@ vector<Edge> BICONNECTED_COMP(Graph & G)
  *
  * @param vector<Edge> is the collection of edges to be rendered
  */
-void PRINT_BRIDGES(const vector<Edge> & bridges)
+void PRINT_BCC(const list < vector<Edge> > & abccs)
 {
-  size_t i = 0, sz = bridges.size();
+  size_t i = 0, sz = abccs.size();
 
   if(sz == 0)
-    cout << "No Bridges Found In Graph\n";
+    cout << "No BCC Found In Graph\n";
   else
   {
-    cout << "Rendering " << sz << " Bridges...\n\n";
-    for(; i < sz; ++i)
+    cout << "Rendering " << sz << " BCC...\n\n";
+    list < vector<Edge> >::const_iterator ait = abccs.begin();
+    for(; ait != abccs.end(); ++ait)
     {
-      Edge e = bridges[i];
-      cout << "Bridge " << e;
+      vector<Edge> ev = *ait;
+      vector<Edge>::iterator it = ev.begin();
+      cout << "BCC: " << i;
+      size_t ssz = ev.size();
+      for(size_t ss = 0; it != ev.end(); ++it, ++ss)
+      {
+        cout << (*it).v1->id << "|" << (*it).v2->id;
+        if(ss + 1 == ssz) cout << endl;
+        else cout << " ";
+      }
     }
   }
 
@@ -168,7 +167,7 @@ void PRINT_BRIDGES(const vector<Edge> & bridges)
 }
 
 /**
- * Main: Finds bridges in a graph using DFS and DFS-VISIT patterns
+ * Main: Finds bccs in a graph using DFS and DFS-VISIT patterns
  * Default graph g1 constructed in increasing edge order
  */
 int main(int argc, char** argv)
@@ -176,6 +175,7 @@ int main(int argc, char** argv)
   Graph g1;
   g1.add_edge("0","1");
   g1.add_edge("1","2");
+  g1.add_edge("1","3");
   g1.add_edge("2","3");
   g1.add_edge("2","4");
   g1.add_edge("3","4");
@@ -188,9 +188,11 @@ int main(int argc, char** argv)
   g1.add_edge("8","9");
   g1.add_edge("10","11");
 
-  cout << g1 << ln;
-  vector<Edge> bridges1 = BICONNECTED_COMP(g1);
-  PRINT_BRIDGES(bridges1);
+  list < vector<Edge> > abccs = BICONNECTED_COMP(g1);
+
+  PRINT_BCC(abccs);
+
+  cout << "count: " << c << endl;
 
   return 0;
 }
