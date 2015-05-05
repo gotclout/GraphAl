@@ -121,7 +121,7 @@ struct Edge
   };
 
   /**
-   *
+   * Equivalence operator
    */
   bool operator==(const Edge & rhs) const
   {
@@ -129,7 +129,7 @@ struct Edge
   }
 
   /**
-   *
+   * Inequality operator
    */
   bool operator!=(const Edge & rhs) const
   {
@@ -232,7 +232,7 @@ struct Graph
     uvt->add_adj(vvt);                      //add uv by default
     E.push_back(Edge(&(*uvt), &(*vvt), w));
 
-    if(!direct)                           //add vu if undirected
+    if(!direct)                             //add vu if undirected
     {
       vvt->add_adj(uvt);
       E.push_back(Edge(&(*vvt), &(*uvt), 0));
@@ -252,7 +252,12 @@ struct Graph
   };
 
   /**
+   * Relaxes vertex
    *
+   * @param Vertex u
+   * @param Vertex v
+   * @param int w
+   * @return bool
    */
   bool relax(Vertex & u, Vertex & v, int w)
   {
@@ -356,6 +361,23 @@ struct Graph
   };
 
   /**
+   * Retrieves edge at index i
+   */
+  Edge* get_edge(int i)
+  {
+    return i < E.size() && i > -1 ? &E[i] : 0;
+  }
+
+  /**
+   * Retrieve vertex with the specified id
+   */
+  Vertex* get_vertex(string id)
+  {
+    VertexMapIt vit = VE.find(Vertex(id));
+    return vit != VE.end() ? (Vertex*)&vit->first : 0;
+  }
+
+  /**
    * Renders a graph
    *
    * @param ostream is the output stream for rendering
@@ -379,3 +401,4 @@ struct Graph
 };
 
 #endif//__Graph__
+
