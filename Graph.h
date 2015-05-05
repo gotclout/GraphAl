@@ -68,8 +68,8 @@ struct AdjMatrix
  ******************************************************************************/
 struct Edge
 {
-  Vertex* v1,       // start vertex
-        * v2;       // end vertex
+  Vertex* u,       // start vertex
+        * v;       // end vertex
   string  id;       // uid
   int     flow,     // flow of the current edge
           cap;      // capacity of the edge
@@ -77,7 +77,7 @@ struct Edge
   /**
    * Default construct
    */
-  Edge() { v1 = v2 = 0; flow = 0; cap = 0; id = ""; };
+  Edge() { u = v = 0; flow = 0; cap = 0; id = ""; };
 
   /**
    * Construct from verticies
@@ -85,11 +85,11 @@ struct Edge
    * @param Vertex* pV1 start vertex, pV2 end vertex
    * @param Vertex* pV2 end vertex
    */
-  Edge(Vertex* pV1, Vertex* pV2)
+  Edge(Vertex* & pV1, Vertex* & pV2)
   {
-    v1 = &(*pV1);
-    v2 = &(*pV2);
-    id = v1->id + v2->id;
+    u = &(*pV1);
+    v = &(*pV2);
+    id = u->id + v->id;
     flow = cap = 0;
   };
 
@@ -102,11 +102,11 @@ struct Edge
    */
   Edge(Vertex* pV1, Vertex* pV2, int pCap)
   {
-    v1 = &(*pV1);
-    v2 = &(*pV2);
+    u = &(*pV1);
+    v = &(*pV2);
     cap = pCap;
     flow = 0;
-    id = v1->id + v2->id;
+    id = u->id + v->id;
   };
 
   /**
@@ -148,8 +148,8 @@ struct Edge
    */
   friend ostream& operator <<(ostream & o, Edge & e)
   {
-    if(e.v1 && e.v2)
-      o << "Edge: [" << e.v1->id << ", " << e.v2->id << "]\n";
+    if(e.u && e.v)
+      o << "Edge: [" << e.u->id << ", " << e.v->id << "]\n";
     return o;
   };
 };
@@ -170,9 +170,10 @@ typedef EdgePtrVector::iterator EdgePtrVectorIt;
  ******************************************************************************/
 struct Graph
 {
-  EdgeVector E; //Collection of Edges
-  VertexMap VE; //Maps a vertex to a list of adjacent verticies
-  bool direct;  //indicates whether G is a directed or undirected graph
+  EdgeVector E;   //Collection of Edges
+  VertexMap VE;   //Maps a vertex to a list of adjacent verticies
+  bool directed,  //indicates whether G is a directed or undirected graph
+       weighted;  //
 
   /**
    * Retrieves the number of verticies |V|
@@ -189,7 +190,11 @@ struct Graph
    *
    * @param bool pDirected is true if G is directed, false otherwise
    */
-  Graph(bool pDirected = false) { direct = pDirected; };
+  Graph(bool pDirected = false, bool pWeighted = false)
+  {
+    directed = pDirected;
+    weighted = pWeighted;
+  };
 
   /**
    * Sets the parent value of all verticies to nil
@@ -232,22 +237,22 @@ struct Graph
     uvt->add_adj(vvt);                      //add uv by default
     E.push_back(Edge(&(*uvt), &(*vvt), w));
 
-    if(!direct)                             //add vu if undirected
+    if(!directed)                           //add vu if undirected
     {
       vvt->add_adj(uvt);
-      E.push_back(Edge(&(*vvt), &(*uvt), 0));
+      E.push_back(Edge(&(*vvt), &(*uvt), w));
     }
   };
 
   /**
    * Updates an edge flow and its reverse edge by m
    */
-  void update_edge(Vertex v1, Vertex v2, int m)
+  void update_edge(Vertex u, Vertex v, int m)
   {
     for(size_t i = 0; i < E.size(); ++i)
     {
-      if(E[i].v1->id == v1.id && E[i].v2->id == v2.id)E[i].flow += m;
-      else if(E[i].v1->id == v2.id &&  E[i].v2->id == v1.id) E[i].cap -= m;
+      if(E[i].u->id == u.id && E[i].v->id == v.id)E[i].flow += m;
+      else if(E[i].u->id == v.id &&  E[i].v->id == u.id) E[i].cap -= m;
     }
   };
 
@@ -263,22 +268,13 @@ struct Graph
   {
     bool ret = false;
 
-    if(direct)
+    if(weighted)
     {
-      VertexMapIt uit = VE.find(u),
-                  vit = VE.find(v);
-
-      if(uit != VE.end() && vit != VE.end())
+      if(u.d + w < v.d)
       {
-        Vertex *pv = (Vertex*) &vit->first,
-               *pu = (Vertex*) &uit->first;
-
-        if(pv->d > pu->d + w)
-        {
-          pv->d  = pu->d + w;
-          pv->pi = &(*pu);
-          ret = true;
-        }
+        v.d = u.d + w;
+        v.pi = &u;
+        ret = true;
       }
     }
 
@@ -292,7 +288,7 @@ struct Graph
   {
     EdgePtrVector ev;
     for(size_t i = 0; i < E.size(); ++i)
-      if(E[i].v1->id == v.id) ev.push_back(&E[i]);
+      if(E[i].u->id == v.id) ev.push_back(&E[i]);
     return ev;
   };
 
@@ -303,14 +299,14 @@ struct Graph
    * @param Edge e is the specified edge
    * @return Vertex* is the vertex adjacent to v on edge e
    */
-  Vertex* adjacent_vertex(Vertex v, Edge e) {return *e.v1 == v ? e.v2 : e.v1;};
+  Vertex* adjacent_vertex(Vertex v, Edge e) {return *e.u == v ? e.v : e.u;};
 
   /**
    * Removes the specified edge from E in G = VE
    */
-  bool remove_edge(Vertex* v1, Vertex* v2)
+  bool remove_edge(Vertex* u, Vertex* v)
   {
-    Edge e(v1, v2);
+    Edge e(u, v);
     return remove_edge(e);
   }
 
@@ -327,14 +323,14 @@ struct Graph
       if(e == *it)
       {
         //remove adjacent vertices
-        VertexMapIt vit = VE.find(*(e.v1));
+        VertexMapIt vit = VE.find(*(e.u));
         Vertex* v = (Vertex*) &vit->first;
-        if(vit != VE.end()) v->remove_adj(e.v2);
-        if(!direct)
+        if(vit != VE.end()) v->remove_adj(e.v);
+        if(!directed)
         {
-          vit = VE.find(*(e.v2));
+          vit = VE.find(*(e.v));
           v = (Vertex*) &vit->first;
-          if(vit != VE.end()) v->remove_adj(e.v1);
+          if(vit != VE.end()) v->remove_adj(e.u);
         }
         E.erase(it);
         ret = true;
@@ -349,7 +345,7 @@ struct Graph
    */
   Graph* get_transpose()
   {
-    Graph* gt = new Graph(direct);
+    Graph* gt = new Graph(directed, weighted);
 
     size_t sz = E.size(), i = 0;
 
