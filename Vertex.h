@@ -44,11 +44,13 @@ struct Vertex
            l,     //lowest
            mcap;  //min capacity of path to vertex
   string   id;    //uid
+  static int ic;
+  int aid;
 
   /**
    * Default construct
    */
-  Vertex()
+  Vertex(int ppid = -1)
   {
     adj   = 0;
     pi    = 0;
@@ -56,6 +58,12 @@ struct Vertex
     d     = l = f = -1;
     id    = "DEFAULT";
     mcap  = INT_MAX;
+      aid = ppid;
+    if(ppid == -1)
+    {
+      aid++ ;
+    }
+
   };
 
   /**
@@ -63,7 +71,7 @@ struct Vertex
    *
    * @param string pId is the unique identifier for this vertex
    */
-  Vertex(string pId)
+  Vertex(string pId, int ppid = -1)
   {
     adj   = 0;
     pi    = 0;
@@ -71,6 +79,11 @@ struct Vertex
     id    = pId;
     d     = l = f = -1;
     mcap  = INT_MAX;
+      aid = ppid;
+    if(ppid == -1)
+    {
+      aid++ ;
+    }
   };
 
   /**
@@ -223,5 +236,5 @@ struct Vertex
     return o;
   };
 };
-
+int Vertex::ic = 0;
 #endif//__Vertex__
