@@ -1,400 +1,140 @@
-#ifndef __Graph__
-#define __Graph__
+#include <iostream>
+#include <sstream>
+#include <climits>
+#include "Graph.h"
 
-#include "Vertex.h"
+using namespace std;
 
-/** Typedef for Vertex containers **/
-typedef list<Vertex*>     AdjList;
-typedef AdjList::iterator AdjListIt;
+/** logging string **/
+static const char* ln =
+"--------------------------------------------------------------------------------\n";
 
-/*******************************************************************************
- * Structure expressing an Adjacency Matrix for a graph G TODO:
- ******************************************************************************/
-struct AdjMatrix
+void PRINT_APSP(int** & dv, Graph & g, stringstream & ss)
 {
-  int n;      //
-  Vertex** A; //
 
-  /**
-   * Default Constructor
-   */
-  AdjMatrix(int n)
+  size_t n = g.vsize();
+  for(size_t i = 0, k = 2; i < n; ++i, k+=2)
   {
-    A = new Vertex*[n];
+//    cout << g.get_edge(i)->u->id << " ";
+    if(i == 0)
+    cout << ss.str().c_str()[2] << " ";
+    else
+    cout << ss.str().c_str()[k] << " ";
+    for(size_t j = 0; j < n; ++j)
+    {
+      cout << dv[i][j] << " ";
+    }
+    cout << endl;
+  }
+}
+
+void FLOYD_WARSHALL(Graph & g, int** & dv)
+{
+  int n = g.vsize();
+  stringstream ss;
+  ss << "  ";
+  for(int i = 0; i < n; ++i)
+  {
+    for(int j = 0; j < n; ++j)
+    {
+      dv[i][j] = INT_MAX / 2 - 1;
+    }
+  }
+
+  VertexMapIt it = g.VE.begin();
+  for(size_t i = 0; it != g.VE.end(); ++it, ++i)
+  {
+    dv[it->first.aid][it->first.aid] = 0;
+    ss << it->first.id << " ";
+  }
+
+  ss << endl;
+  for(size_t k = 0; k < g.esize(); ++k)
+  {
+    Edge* e =  g.get_edge(k);
+    e->v->l = 0;
+    Vertex* u = e->u, *v = e->v;
+
+    dv[u->aid][v->aid] = e->cap;
+  }
+
+  int nv;
+  for(int k = 0; k < n; ++k)
+  {
     for(int i = 0; i < n; ++i)
-      A[i] = new Vertex[n];
-  };
-
-  /**
-   * Retrieves the vertex at A[i][j]
-   */
-  Vertex* get(int i, int j){ return &A[i][j];};
-
-  void put(int i, int j, Vertex* v)
-  {
-    A[i][j] = *v;
-  };
-
-  /**
-   * Retrieves the verticies at A[i]
-   */
-  Vertex* allfrom(int i)
-  {
-    Vertex* r = new Vertex[n];
-    for(int idx = 0; idx < n; i++)
-      r[idx] = A[i][idx];
-
-    return r;
-  };
-
-  /**
-   * Destructor
-   */
-  ~AdjMatrix()
-  {
-    if(A)
     {
-      for(int i = 0; i < n; ++i)
+      Edge* e = g.get_edge(i, k);
+      if(e) e->v->l = dv[i][k];
+      for(int j = 0; j < n; ++j)
       {
-        if(A[i]) delete [] A[i];
-      }
-      delete [] A;
-    }
-  }
-};
-
-/*******************************************************************************
- * Structure expressing graph edges
- ******************************************************************************/
-struct Edge
-{
-  Vertex* u,       // start vertex
-        * v;       // end vertex
-  string  id;       // uid
-  int     flow,     // flow of the current edge
-          cap;      // capacity of the edge
-
-  /**
-   * Default construct
-   */
-  Edge() { u = v = 0; flow = 0; cap = 0; id = ""; };
-
-  /**
-   * Construct from verticies
-   *
-   * @param Vertex* pV1 start vertex, pV2 end vertex
-   * @param Vertex* pV2 end vertex
-   */
-  Edge(Vertex* & pV1, Vertex* & pV2)
-  {
-    u = &(*pV1);
-    v = &(*pV2);
-    id = u->id + v->id;
-    flow = cap = 0;
-  };
-
-  /**
-   * Construct from vertex pointer and value
-   *
-   * @param Vertex* pV1 is the source vertex of edge e
-   * @param Vertex* pV2 is the destination vertex of edge e
-   * @param int pCap is the capacity of edge e
-   */
-  Edge(Vertex* pV1, Vertex* pV2, int pCap)
-  {
-    u = &(*pV1);
-    v = &(*pV2);
-    cap = pCap;
-    flow = 0;
-    id = u->id + v->id;
-  };
-
-  /**
-   * Less than operator overload
-   *
-   * @param rhs is the edge to be compared
-   * @return true if the id of this edge < rhs false otherwise
-   */
-  bool operator<(const Edge & rhs) const
-  {
-    return id < rhs.id;
-  };
-
-  /**
-   * Equivalence operator
-   */
-  bool operator==(const Edge & rhs) const
-  {
-    return id == rhs.id;
-  }
-
-  /**
-   * Inequality operator
-   */
-  bool operator!=(const Edge & rhs) const
-  {
-    return id != rhs.id;
-  }
-
-  /**
-   * Retrieves the residual value of the edge
-   *
-   * @return int is the value of capacity - flow
-   */
-  int residual() { return cap - flow; };
-
-  /**
-   * Renders an edge
-   */
-  friend ostream& operator <<(ostream & o, Edge & e)
-  {
-    if(e.u && e.v)
-      o << "Edge: [" << e.u->id << ", " << e.v->id << "]\n";
-    return o;
-  };
-};
-
-/** Typedefs for Vertex Containers **/
-typedef map<Vertex, AdjList>  VertexMap;
-typedef VertexMap::iterator   VertexMapIt;
-typedef VertexMap::value_type VertexMapType;
-
-/** Typedefs for Edge Containers **/
-typedef vector<Edge>  EdgeVector;
-typedef EdgeVector::iterator EdgeVectorIt;
-typedef vector<Edge*> EdgePtrVector;
-typedef EdgePtrVector::iterator EdgePtrVectorIt;
-
-/*******************************************************************************
- * Structure for representing a graph G = (V, E)
- ******************************************************************************/
-struct Graph
-{
-  EdgeVector E;   //Collection of Edges
-  VertexMap VE;   //Maps a vertex to a list of adjacent verticies
-  bool directed,  //indicates whether G is a directed or undirected graph
-       weighted;  //
-
-  /**
-   * Retrieves the number of verticies |V|
-   */
-  size_t vsize() { return VE.size(); };
-
-  /**
-   * Retrieves the number of edges |E|
-   */
-  size_t esize() { return E.size(); };
-
-  /**
-   * Default construct
-   *
-   * @param bool pDirected is true if G is directed, false otherwise
-   */
-  Graph(bool pDirected = false, bool pWeighted = false)
-  {
-    directed = pDirected;
-    weighted = pWeighted;
-  };
-
-  /**
-   * Sets the parent value of all verticies to nil
-   */
-  void nilpi()
-  {
-    for(VertexMapIt i = VE.begin(); i != VE.end(); ++i)
-    {
-      Vertex* vptr = (Vertex*) &i->first;
-      vptr->pi = 0;
-    }
-  }
-
-  /**
-   * Adds an edge to this graph
-   *
-   * @param int u is the identifier for the first vertex
-   * @param int v is the identifier for the second vertex
-   */
-  void add_edge(string u, string v, int w = -1)
-  {
-    VertexMapIt uit, vit, beg = VE.begin();
-    Vertex* uvt, //u vertex ptr
-           *vvt; //v vertex ptr
-
-    uit = VE.find(Vertex(u));
-    if(uit == VE.end())
-      uit = VE.insert(beg, VertexMapType(Vertex(u), AdjList()));
-    uvt = (Vertex*)&(uit->first);
-
-    if(!uvt->adj) uvt->adj = (AdjList*)& uit->second;
-
-    vit = VE.find(Vertex(v));
-    if(vit == VE.end())
-      vit = VE.insert(beg, VertexMapType(Vertex(v), AdjList()));
-    vvt = (Vertex*)&(vit->first);
-
-    if(!vvt->adj) vvt->adj = (AdjList*)& vit->second;
-
-    uvt->add_adj(vvt);                      //add uv by default
-    E.push_back(Edge(&(*uvt), &(*vvt), w));
-
-    if(!directed)                           //add vu if undirected
-    {
-      vvt->add_adj(uvt);
-      E.push_back(Edge(&(*vvt), &(*uvt), w));
-    }
-  };
-
-  /**
-   * Updates an edge flow and its reverse edge by m
-   */
-  void update_edge(Vertex u, Vertex v, int m)
-  {
-    for(size_t i = 0; i < E.size(); ++i)
-    {
-      if(E[i].u->id == u.id && E[i].v->id == v.id)E[i].flow += m;
-      else if(E[i].u->id == v.id &&  E[i].v->id == u.id) E[i].cap -= m;
-    }
-  };
-
-  /**
-   * Relaxes vertex
-   *
-   * @param Vertex u
-   * @param Vertex v
-   * @param int w
-   * @return bool
-   */
-  bool relax(Vertex & u, Vertex & v, int w)
-  {
-    bool ret = false;
-
-    if(weighted)
-    {
-      if(u.d + w < v.d)
-      {
-        v.d = u.d + w;
-        v.pi = &u;
-        ret = true;
-      }
-    }
-
-    return ret;
-  }
-
-  /**
-   * Retrieves the edges connecting v to e in G
-   */
-  EdgePtrVector adjacent_edges(Vertex v)
-  {
-    EdgePtrVector ev;
-    for(size_t i = 0; i < E.size(); ++i)
-      if(E[i].u->id == v.id) ev.push_back(&E[i]);
-    return ev;
-  };
-
-  /**
-   * Retrieves the vertex adjacent to v on edge e
-   *
-   * @param Vertex v is the specified vertex
-   * @param Edge e is the specified edge
-   * @return Vertex* is the vertex adjacent to v on edge e
-   */
-  Vertex* adjacent_vertex(Vertex v, Edge e) {return *e.u == v ? e.v : e.u;};
-
-  /**
-   * Removes the specified edge from E in G = VE
-   */
-  bool remove_edge(Vertex* u, Vertex* v)
-  {
-    Edge e(u, v);
-    return remove_edge(e);
-  }
-
-  /**
-   * Removes the specified edge from E in G = VE
-   */
-  bool remove_edge(Edge & e)
-  {
-    bool ret = false;
-
-    EdgeVectorIt it = E.begin();
-    for( ; it != E.end() && !ret; ++it)
-    {
-      if(e == *it)
-      {
-        //remove adjacent vertices
-        VertexMapIt vit = VE.find(*(e.u));
-        Vertex* v = (Vertex*) &vit->first;
-        if(vit != VE.end()) v->remove_adj(e.v);
-        if(!directed)
+        nv = dv[i][k]+ dv[k][j];
+        if( nv < dv[i][j])
         {
-          vit = VE.find(*(e.v));
-          v = (Vertex*) &vit->first;
-          if(vit != VE.end()) v->remove_adj(e.u);
+          dv[i][j] = nv;
+          Edge* ee = g.get_edge(k, j);
+          if(e && ee && j != i)
+          {
+            e->v->l = nv;
+            if(e->v->pi) e->v->pi->l += dv[i][k];
+            ee->v->pi = e->v; //ee->v->->l = nv ;
+          }
         }
-        E.erase(it);
-        ret = true;
       }
     }
-
-    return ret;
-  };
-
-  /**
-   * Construct and retreives G^T of G
-   */
-  Graph* get_transpose()
+  }
+  cout << "Rendering APSP...\n" << ss.str();
+  PRINT_APSP(dv, g, ss);
+  it = g.VE.begin();
+  for(size_t i = 0; it != g.VE.end(); ++it, ++i)
   {
-    Graph* gt = new Graph(directed, weighted);
-
-    size_t sz = E.size(), i = 0;
-
-    for( ; i < sz; ++i)
+    bool f = 1;
+    Vertex* tpi = it->first.pi;
+    while(tpi)
     {
+      if(f)
+      {
+        cout << it->first.id << " -> " << tpi->id;
+        f = 0;
+      }
+      else
+      {
 
+         cout << " -> " << tpi->id;
+        if(tpi->pi->pi->id ==
+            tpi->id)
+        {
+          cout << " : " << tpi->pi->l;
+          break;
+        }
+      }
+      tpi = tpi->pi;
     }
-    return gt;
-  };
-
-  /**
-   * Retrieves edge at index i
-   */
-  Edge* get_edge(int i)
-  {
-    return i < E.size() && i > -1 ? &E[i] : 0;
+    if(!f) cout << endl;
   }
+  cout << g;
+}
 
-  /**
-   * Retrieve vertex with the specified id
-   */
-  Vertex* get_vertex(string id)
-  {
-    VertexMapIt vit = VE.find(Vertex(id));
-    return vit != VE.end() ? (Vertex*)&vit->first : 0;
-  }
+int main(int argc, char** argv)
+{
+  Graph g(false, true);
+  g.add_edge("A", "B", 2);
+  g.add_edge("A", "F", 3);
+  g.add_edge("B", "C", 5);
+  g.add_edge("B", "E", 4);
+  g.add_edge("B", "G", 3);
+  g.add_edge("C", "E", 2);
+  g.add_edge("C", "H", 4);
+  g.add_edge("D", "F", 4);
+  g.add_edge("D", "G", 2);
+  g.add_edge("D", "E", 2);
+  g.add_edge("E", "H", 3);
+  g.add_edge("F", "G", 1);
+  g.add_edge("G", "H", 1);
+  int** dv = new int*[g.vsize()];
+  for(int i = 0; i < g.vsize(); ++i)
+    dv[i] = new int[g.vsize()];
 
-  /**
-   * Renders a graph
-   *
-   * @param ostream is the output stream for rendering
-   * @param Graph G is the graph to be rendered
-   */
-  friend ostream& operator << (ostream & o, Graph & G)
-  {
-    size_t i = 0, sz = G.vsize();
 
-    o << "Rendering Graph...\n\n" << "Num Verticies: " << sz << endl;
-
-    VertexMapIt vmi = G.VE.begin();
-
-    for(; vmi != G.VE.end(); ++vmi) o << vmi->first << endl;
-    o << "Rendering Edges\nNum Edges: " << G.E.size() << endl;
-    for(i = 0; i < G.E.size(); ++i) o << G.E[i];
-    o << "\nRendering Complete\n";
-
-    return o;
-  };
-};
-
-#endif//__Graph__
-
+  FLOYD_WARSHALL(g, dv);
+  return 0;
+}
