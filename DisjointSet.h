@@ -52,7 +52,7 @@ class DisjointSet
   };
 
   /**
-   * Wraper for std::map comparator map<T*, Set*, Compare> force value
+   * Wrapper for std::map comparator map<T*, Set*, Compare> force value
    * compare rather than pointer compare since T* is copied once in the
    * Set struct. Avoid copying it into the map since T could be large
    */
