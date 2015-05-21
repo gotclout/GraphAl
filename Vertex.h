@@ -237,4 +237,5 @@ struct Vertex
   };
 };
 int Vertex::ic = 0;
+
 #endif//__Vertex__
