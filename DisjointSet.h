@@ -95,13 +95,13 @@ class DisjointSet
   {
     Set* ret = 0;
 
-    ret = *(s->parent) == *s ? s : FindSet(s->parent);
+    ret = *(s->parent) == *s ? s : s->parent = FindSet(s->parent);
 
     return ret;
   };
 
   /**
-   *
+   * TODO: Rename Find
    */
   T* FindSet(const T & e)
   {
