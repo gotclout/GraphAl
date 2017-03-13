@@ -2,6 +2,7 @@
 #define __Graph__
 
 #include "Vertex.h"
+#include "FifoQueue.h"
 
 /** Typedef for Vertex containers **/
 typedef list<Vertex*>     AdjList;
@@ -71,7 +72,7 @@ struct Edge
   Vertex* u,       // start vertex
         * v;       // end vertex
   string  id;       // uid
-  int     flow,     // flow of the current edge
+  double  flow,     // flow of the current edge
           cap;      // capacity of the edge
 
   /**
@@ -100,7 +101,7 @@ struct Edge
    * @param Vertex* pV2 is the destination vertex of edge e
    * @param int pCap is the capacity of edge e
    */
-  Edge(Vertex* pV1, Vertex* pV2, int pCap)
+  Edge(Vertex* pV1, Vertex* pV2, double pCap)
   {
     u = &(*pV1);
     v = &(*pV2);
@@ -141,7 +142,7 @@ struct Edge
    *
    * @return int is the value of capacity - flow
    */
-  int residual() { return cap - flow; };
+  double residual() { return cap - flow; };
 
   /**
    * Renders an edge
@@ -197,6 +198,16 @@ struct Graph
   };
 
   /**
+   * Retrieves a pointer to the vertex v in G
+   *
+   * @param Vertex v is the vertex to be retrieved
+   */
+  Vertex* get_vertex(Vertex v)
+  {
+    return VE.find(v) == VE.end() ? 0 : (Vertex*) &VE.find(v)->first;
+  };
+
+  /**
    * Sets the parent value of all verticies to nil
    */
   void nilpi()
@@ -207,6 +218,20 @@ struct Graph
       vptr->pi = 0;
     }
   }
+
+  /**
+   *
+   */
+  void init()
+  {
+    for(VertexMapIt i = VE.begin(); i != VE.end(); ++i)
+    {
+      Vertex* vptr = (Vertex*) &i->first;
+      vptr->pi      = 0;
+      vptr->visited = 0;
+      vptr->color   = eWhite;
+    }
+  };
 
   /**
    * Adds an edge to this graph
@@ -365,12 +390,71 @@ struct Graph
   }
 
   /**
+   *
+   */
+  Edge* get_edge(int i, int k)
+  {
+    return 0;
+  }
+
+  /**
    * Retrieve vertex with the specified id
    */
   Vertex* get_vertex(string id)
   {
     VertexMapIt vit = VE.find(Vertex(id));
     return vit != VE.end() ? (Vertex*)&vit->first : 0;
+  }
+
+  /**
+   * Use BFS to determin graph connectivity
+   */
+  bool bfs_connected()
+  {
+    bool rval = true;
+    VertexMapIt vmi = VE.begin();
+    init();
+
+    Vertex s = vmi->first;
+    queue<Vertex> q;
+    s.pi = &s;
+    q.enqueue(s);
+
+    while(!q.empty())
+    {
+      Vertex* u = (Vertex*) &VE.find(q.dequeue())->first;
+      cout << "visiting " << u->id << endl;
+      u->visited = true;
+      AdjListIt ait = u->adj->begin();
+
+      for( ; ait != u->adj->end(); ++ait)
+      {
+        Vertex* v = *ait;
+        if(v->pi == NIL && v->visited == false)
+        {
+          v->pi = get_vertex(*u);
+          q.enqueue(*v);
+        }
+        else if(v->pi == NIL) v->pi = get_vertex(*u);
+      }
+    }
+
+    for (vmi = VE.begin(); rval && vmi != VE.end(); ++vmi)
+    {
+      if(vmi->first.visited == false) rval = false;
+    }
+
+    return rval;
+  };
+
+  /**
+   * Use DFS to determine graph connectivity
+   */
+  bool dfs_connected()
+  {
+    bool rval = true;
+
+    return rval;
   }
 
   /**

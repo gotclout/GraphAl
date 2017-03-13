@@ -2,6 +2,7 @@
 #define __MUTEX__
 
 #include <pthread.h>
+#include <cstdlib>
 
 //Allow processes to share mutex
 #ifndef _POSIX_THREAD_PROCESS_SHARED

@@ -9,6 +9,8 @@
 #include <list>
 #include <map>
 #include <climits>
+#include <cmath>
+#include <float.h>
 
 using std::map;
 using std::vector;
@@ -28,6 +30,37 @@ enum EColor
 };
 
 /*******************************************************************************
+ * Structure for expressing geospatial coordinates
+ ******************************************************************************/
+struct Point
+{
+  double x,
+         y,
+         z;
+
+  /**
+   * Default constructor
+   */
+  Point(double pX = 0, double pY = 0, double pZ = 0)
+  {
+    x = pX;
+    y = pY;
+    z = pZ;
+  };
+
+  /**
+   * Output operator
+   */
+   friend ostream & operator<< (ostream & o, Point & p)
+   {
+     o << "(" << p.x << ", " << p.y << ", " << p.z << ")" << endl;
+
+     return o;
+   };
+
+};
+
+/*******************************************************************************
  * Structure for expressing graph vertex
  ******************************************************************************/
 struct Vertex
@@ -43,9 +76,13 @@ struct Vertex
            f,     //finish time
            l,     //lowest
            mcap;  //min capacity of path to vertex
+  double  maxcap,
+          mincap;
   string   id;    //uid
   static int ic;
   int aid;
+  Point p;
+  bool visited;
 
   /**
    * Default construct
@@ -85,6 +122,11 @@ struct Vertex
       aid++ ;
     }
   };
+
+  /**
+   *
+   */
+  size_t num_adj() { return adj ? adj->size() : 0; }
 
   /**
    * Adds a vertex to this vertexes adjaceny list
@@ -130,25 +172,53 @@ struct Vertex
   }
 
   /**
+   *
+   */
+  double distance(const Point & pStart)
+  {
+    double dx = p.x - pStart.x,
+           dy = p.y - pStart.y,
+           d  = sqrt((dx*dx) + (dy*dy));
+
+    return d;
+  }
+
+  /**
    * TODO: Copy/Assignment
    */
-  /*
   Vertex& operator=(const Vertex & rhs)
   {
     if(this != &rhs)
     {
-
+      id = rhs.id;
+      adj = new AdjList;
+      if(rhs.adj) *(adj = rhs.adj);
+      aid = rhs.aid;
+      pi = rhs.pi;
+      color = rhs.color;
+      p = rhs.p;
+      maxcap = rhs.maxcap;
+      mincap = rhs.mincap;
+      mcap   = rhs.mcap;
     }
 
     return *this;
   }
 
-  Vertex(const Vertex & pV)
+  Vertex(const Vertex & src)
   {
-
-
+    id = src.id;
+    adj = new AdjList;
+    if(src.adj) *(adj = src.adj);
+    aid = src.aid;
+    pi = src.pi;
+    color = src.color;
+    p = src.p;
+    maxcap = src.maxcap;
+    mincap = src.mincap;
+    mcap   = src.mcap;
   }
-  */
+
   /**
    * Equivalence operator overload
    * 
@@ -207,9 +277,10 @@ struct Vertex
     Vertex v = (Vertex) pV;
     return operator<<(o, v);
   };
+
   friend ostream& operator<< (ostream & o, Vertex & v)
   {
-    size_t sz = v.adj->size();
+    size_t sz = v.num_adj();
 
     if(sz > 0)
     {
@@ -232,6 +303,7 @@ struct Vertex
     if(v.f < 0) o << ", f[" << v.id << "]:"  << "UNDEFINED";
     else        o << ", f[" << v.id << "]:"  << v.f;
                 o << ", Color:"     << v.get_color(v.color);
+    o << "p(x, y, z): " << v.p;
 
     return o;
   };

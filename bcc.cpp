@@ -47,7 +47,7 @@ int BCC_VISIT(Vertex* & u, vector<Edge> & bccs, list < vector<Edge> >& abccs)
       if( (u->d == 1 && children > 1) || (u->d > 1 && v->l >= u->d))
       {
         vector<Edge> ve;
-        while(bccs.back().v1 != u || bccs.back().v2 != v)
+        while(bccs.back().u != u || bccs.back().v != v)
         {
           ve.push_back(bccs.back());
           bccs.pop_back();
@@ -148,15 +148,15 @@ void PRINT_BCC(const list < vector<Edge> > & abccs)
   {
     cout << "Rendering " << sz << " BCC...\n\n";
     list < vector<Edge> >::const_iterator ait = abccs.begin();
-    for(; ait != abccs.end(); ++ait)
+    for(; ait != abccs.end(); ++ait, ++i)
     {
       vector<Edge> ev = *ait;
       vector<Edge>::iterator it = ev.begin();
-      cout << "BCC: " << i;
+      cout << "BCC " << i << ": " ;
       size_t ssz = ev.size();
       for(size_t ss = 0; it != ev.end(); ++it, ++ss)
       {
-        cout << (*it).v1->id << "|" << (*it).v2->id;
+        cout << "[" << (*it).u->id << "," << (*it).v->id << "]";
         if(ss + 1 == ssz) cout << endl;
         else cout << " ";
       }
