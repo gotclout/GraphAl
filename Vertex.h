@@ -11,6 +11,7 @@
 #include <climits>
 #include <cmath>
 #include <float.h>
+#include <sstream>
 
 using std::map;
 using std::vector;
@@ -19,6 +20,7 @@ using std::string;
 using std::iostream;
 using std::ostream;
 using std::endl;
+using std::stringstream;
 
 /** Vertex Color Enumeration **/
 enum EColor
@@ -32,16 +34,35 @@ enum EColor
 /*******************************************************************************
  * Structure for expressing geospatial coordinates
  ******************************************************************************/
-struct Point
+class Point
 {
-  double x,
+  public:
+
+    int  idx;
+  float  x,
          y,
          z;
 
   /**
+   * Polar radius
+   */
+  double r()
+  {
+    return sqrt(x*x + y*y + z*z);
+  }
+
+  /**
+   *
+   */
+  double theta()
+  {
+    return atan2(y, x);
+  }
+
+  /**
    * Default constructor
    */
-  Point(double pX = 0, double pY = 0, double pZ = 0)
+  Point(double pX = 0, double pY = 0, double pZ = -1)
   {
     x = pX;
     y = pY;
@@ -49,11 +70,24 @@ struct Point
   };
 
   /**
+   *
+   */
+  double distance(const Point & pPoint)
+  {
+    double dx = x - pPoint.x,
+           dy = y - pPoint.y,
+           d  = sqrt((dx*dx) + (dy*dy));
+
+    return d;
+  }
+
+  /**
    * Output operator
    */
    friend ostream & operator<< (ostream & o, Point & p)
    {
-     o << "(" << p.x << ", " << p.y << ", " << p.z << ")" << endl;
+     o << "Point " << p.idx << ": " << "(" << p.x << ", " << p.y
+       << ", " << p.z << ")" << endl;
 
      return o;
    };
@@ -63,8 +97,9 @@ struct Point
 /*******************************************************************************
  * Structure for expressing graph vertex
  ******************************************************************************/
-struct Vertex
+class Vertex
 {
+  public:
 
   typedef list<Vertex*>     AdjList;
   typedef AdjList::iterator AdjListIt;
@@ -101,6 +136,7 @@ struct Vertex
       aid++ ;
     }
 
+    visited = false;
   };
 
   /**
@@ -121,6 +157,8 @@ struct Vertex
     {
       aid++ ;
     }
+
+    visited = false;
   };
 
   /**
@@ -174,14 +212,23 @@ struct Vertex
   /**
    *
    */
-  double distance(const Point & pStart)
+  double distance(const Vertex & pStart)
   {
-    double dx = p.x - pStart.x,
-           dy = p.y - pStart.y,
-           d  = sqrt((dx*dx) + (dy*dy));
-
-    return d;
+    return p.distance(pStart.p);
   }
+
+  /**
+   *
+   */
+  int get_id()
+  {
+    int rval;
+    stringstream ss;
+    ss << id;
+    ss >> rval;
+
+    return rval;
+  };
 
   /**
    * TODO: Copy/Assignment
@@ -190,9 +237,13 @@ struct Vertex
   {
     if(this != &rhs)
     {
-      id = rhs.id;
-      adj = new AdjList;
-      if(rhs.adj) *(adj = rhs.adj);
+      this->id = rhs.id;
+      if(rhs.adj)
+      {
+        adj = new AdjList;
+        *adj = *rhs.adj;
+      }
+      else adj = 0;
       aid = rhs.aid;
       pi = rhs.pi;
       color = rhs.color;
@@ -200,6 +251,10 @@ struct Vertex
       maxcap = rhs.maxcap;
       mincap = rhs.mincap;
       mcap   = rhs.mcap;
+      d      = rhs.d;
+      l      = rhs.l;
+      f      = rhs.f;
+      visited = rhs.visited;
     }
 
     return *this;
@@ -209,7 +264,12 @@ struct Vertex
   {
     id = src.id;
     adj = new AdjList;
-    if(src.adj) *(adj = src.adj);
+    if(src.adj)
+    {
+      adj = new AdjList;
+      *adj = *src.adj;
+    }
+    else adj = 0;
     aid = src.aid;
     pi = src.pi;
     color = src.color;
@@ -217,6 +277,10 @@ struct Vertex
     maxcap = src.maxcap;
     mincap = src.mincap;
     mcap   = src.mcap;
+    d      = src.d;
+    l      = src.l;
+    f      = src.f;
+    visited = src.visited;
   }
 
   /**
@@ -272,6 +336,13 @@ struct Vertex
    * @param ostream outputstream for rendering
    * @param Vertex is the vertex to be rendered
    */
+  friend ostream& operator<< (ostream & o, const Vertex* & pV)
+  {
+    Vertex v = (Vertex) *pV;
+    o << "Address: " << &(*pV) << endl;
+    return operator<<(o, v);
+  };
+
   friend ostream& operator<< (ostream & o, const Vertex & pV)
   {
     Vertex v = (Vertex) pV;
@@ -303,7 +374,7 @@ struct Vertex
     if(v.f < 0) o << ", f[" << v.id << "]:"  << "UNDEFINED";
     else        o << ", f[" << v.id << "]:"  << v.f;
                 o << ", Color:"     << v.get_color(v.color);
-    o << "p(x, y, z): " << v.p;
+    o << ", " << v.p;
 
     return o;
   };

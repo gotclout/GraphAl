@@ -37,7 +37,7 @@ map< pair<string, string>, int> BELLMAN_FORD(Graph & G, Vertex* src, map< pair<s
       Vertex* u = e->u, *v = e->v;
       G.relax(*u, *v, e->cap);
       cout << u->id << " " << u->d << " : "
-           << v->id << " " << v->d << " " << v  << " " << u << endl;
+           << v->id << " " << v->d << " " << *v  << " " << *u << endl;
     }
 
   }

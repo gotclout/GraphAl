@@ -495,7 +495,7 @@ void PRINT_BRIDGES(const vector<Edge> & bridges)
 int BFS(Graph & G, Vertex & s, Vertex & t)
 {
   int r = 0;
-  queue<Vertex> q;
+  Queue<Vertex> q;
   s.mcap = INT_MAX;
   s.pi = &s;
   q.enqueue(s);

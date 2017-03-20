@@ -31,7 +31,7 @@ void PRINT_APSP(int** & dv, Graph & g, stringstream & ss)
 void FLOYD_WARSHALL(Graph & g, int** & dv)
 {
   int n = g.vsize();
-  stringstream ss;
+  stringstream ss, sconv;
   ss << "  ";
   for(int i = 0; i < n; ++i)
   {
@@ -46,6 +46,7 @@ void FLOYD_WARSHALL(Graph & g, int** & dv)
   {
     dv[it->first.aid][it->first.aid] = 0;
     ss << it->first.id << " ";
+    ss << it->first.aid << " ";
   }
 
   ss << endl;
@@ -63,7 +64,13 @@ void FLOYD_WARSHALL(Graph & g, int** & dv)
   {
     for(int i = 0; i < n; ++i)
     {
-      Edge* e = g.get_edge(i, k);
+      string si,
+             sk;
+      sconv << i; sconv >> si;
+      sconv.str(""); sconv.clear();
+      sconv << k; sconv >> sk;
+      sconv.str(""); sconv.clear();
+      Edge* e = g.get_edge(si, sk);
       if(e) e->v->l = dv[i][k];
       for(int j = 0; j < n; ++j)
       {
@@ -71,7 +78,10 @@ void FLOYD_WARSHALL(Graph & g, int** & dv)
         if( nv < dv[i][j])
         {
           dv[i][j] = nv;
-          Edge* ee = g.get_edge(k, j);
+          string sj;
+          sconv << j; sconv >> sj;
+          sconv.str(""); sconv.clear();
+          Edge* ee = g.get_edge(sk, sj);
           if(e && ee && j != i)
           {
             e->v->l = nv;

@@ -9,7 +9,7 @@ using namespace std;
  * Template linked list node object
  */
 template <class Object>
-class qnode
+class QNode
 {
 
   public:
@@ -18,19 +18,19 @@ class qnode
     Object data;
 
     /** Next element **/
-    qnode* next;
+    QNode* next;
 
     /**
      * Default Constructor
      */
-    qnode(const Object & o) { next = NULL; data = o; };
+    QNode(const Object & o) { next = NULL; data = o; };
 };
 
 /**
- * Template linked list FIFO queue implementation
+ * Template linked list FIFO Queue implementation
  */
 template <class Object>
-class queue
+class Queue
 {
 
   private:
@@ -39,13 +39,13 @@ class queue
     int qsize;
 
     /** First/Front node **/
-    class qnode<Object>* head;
+    class QNode<Object>* head;
 
     /** End/Tail node **/
-    class qnode<Object>* tail;
+    class QNode<Object>* tail;
 
     /** Tracking node **/
-    class qnode<Object>* current;
+    class QNode<Object>* current;
 
     /** Mutex for thread safe operations **/
     Mutex mutex;
@@ -55,7 +55,7 @@ class queue
     /**
      * Default Constructor
      */
-    queue()
+    Queue()
     {
       qsize = 0; head = tail = current = NULL;
     };
@@ -66,7 +66,7 @@ class queue
     void enqueue(const Object & o)
     {
       mutex.lock();
-      current = new qnode<Object>(o);
+      current = new QNode<Object>(o);
       ++qsize;
       if(!head)
       {
@@ -119,7 +119,7 @@ class queue
     /**
      * Destructor
      */
-    ~queue()
+    ~Queue()
     {
       while(head)
       {
