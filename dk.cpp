@@ -2,6 +2,11 @@
 #include <string>
 #include <set>
 #include <queue>
+#include <map>
+#include <sstream>
+#include <string>
+#include <fstream>
+
 #include "Graph.h"
 
 using namespace std;
@@ -9,11 +14,18 @@ using namespace std;
 class VertexEntry
 {
   public:
+
   Vertex* v;
+  static int idc;
 
   VertexEntry(const Vertex* pV)
   {
     v = (Vertex*) &(*pV);
+  }
+
+  bool operator==(const VertexEntry & rhs)
+  {
+    return *v == *(rhs.v);
   }
 
   bool operator<(const VertexEntry & rhs)
@@ -29,10 +41,103 @@ class VertexEntry
 
 };
 
-bool operator>(VertexEntry lhs, VertexEntry rhs) {return lhs.v->d > rhs.v->d;};
-bool operator<(VertexEntry lhs, VertexEntry rhs) {return lhs.v->d < rhs.v->d;};
+int VertexEntry::idc = 0;
+bool operator==(VertexEntry lhs, VertexEntry rhs) { return *lhs.v == *rhs.v;    };
+bool operator>(VertexEntry lhs, VertexEntry rhs)  { return lhs.v->d > rhs.v->d; };
+bool operator<(VertexEntry lhs, VertexEntry rhs)  { return lhs.v->d < rhs.v->d; };
 
-map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, map< pair<string, string>, double> pd)
+/*
+void set_input()
+{
+  src = 0; tgt = 5;
+  cout << "Input source city index: " << src << endl;
+  cout << "Input destination city index: " << tgt << endl;
+  cout << "Computing shortest path from: " << src << " to "
+       << tgt << endl;
+}
+*/
+
+string srcstr, tgtstr;
+Graph g(false, true);
+map<int, Point> cities;
+int NV, NE;
+
+/**
+ *
+ */
+void get_input()
+{
+  cout << "Input source city index: ";
+  cin >> srcstr;
+  cout << "Input destination city index: ";
+  cin >> tgtstr;
+  cout << "Computing shortest path from: " << srcstr << " to "
+       << tgtstr << endl;
+}
+
+/**
+ *
+ */
+void make_graph(string input = "./doc/sample.txt")
+{
+  int i, u, v;
+
+  ifstream in(input.c_str(), ios::in);
+
+  stringstream ss;
+
+  cout << "Generating graph from file:  " << input << endl;
+  if(in.is_open())
+  {
+    in >> NV >> NE;
+
+    cout << "Map contains " << NV << " verticies (cities) and "
+         << NE << " edges" << endl;
+
+    cout << "Adding cities to graph..." << endl;
+    Point p;
+    for(i = 0; i < NV; ++i)
+    {
+      in >> p.idx;
+      in >> p.x;
+      in >> p.y;
+
+      cities[p.idx] = p;
+    }
+
+    cout << "Cities added to graph" << endl;
+    cout << "Adding edges to graph..." << endl;
+    u = v = 0;
+    for(i = 0; i < NE; ++i)
+    { 
+      in >> u;
+      in >> v;
+      
+      ss << u;
+      Vertex vu(ss.str());
+      ss.str(""); ss.clear();
+      ss << v;
+      Vertex vv(ss.str());
+      ss.str(""); ss.clear();
+      vu.p = cities[u];
+      vv.p = cities[v]; 
+      
+      g.add_edge(vu, vv, cities[u].distance(cities[v]));
+    }
+
+    cout << "Edges added to graph" << endl;
+    in.close();
+  }
+  else
+  {
+    cout << "Could not open: " << input << " for reading" << endl;
+  }
+}
+
+/**
+ *
+ */
+map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & tgt, map< pair<string, string>, double> pd)
 {
   Vertex *v, *u;
   Edge* e;
@@ -40,51 +145,60 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, map< pair<
 
   g.init(src);
 
-  //priority_queue<VertexEntry, vector<VertexEntry>, std::greater<VertexEntry> > pq;
-  priority_queue<VertexEntry> pq;
+  priority_queue<VertexEntry, vector<VertexEntry>, std::greater<VertexEntry> > pq;
 
   for(VertexMapIt i = g.VE.begin(); i != g.VE.end(); ++i)
   {
     Vertex* v = (Vertex*) &i->first;
-    if(*v == *src)
-    {
-      continue;
-    }
-    else
+    if(*v != *src)
     {
       v->d = INT_MAX - 1000;
     }
     VertexEntry ve(v);
     pq.push(ve);
-    cout << *(ve.v) << endl;
   }
 
   while(!pq.empty())
   {
-    //extract-min
     VertexEntry ve = pq.top();
     u = ve.v;
-    //u = &(*pq.top().v);
     pq.pop();
     s.insert(u);
-    EdgePtrVector E = g.adjacent_edges(*u);
-    for(size_t i = 0; i < E.size(); ++i)
+
+    AdjListIt ait = u->adj->begin();
+    for( ; ait != u->adj->end(); ++ait)
     {
-      e = E[i];
-      v = g.adjacent_vertex(*u, *e);
-      g.relax(*u, *v, e->cap);
+      v = *ait;
+      e = g.get_edge(u, v);
+      if(g.relax(*u, *v, e->cap))
+      {
+        pair<string, string> k = make_pair(u->id, v->id);
+        pd[k] = v->d;
+      }
     }
   }
 
-  for(VertexMapIt i = g.VE.begin(); i != g.VE.end(); ++i)
+  Vertex* vtgt = g.get_vertex(*tgt);
+
+  if(vtgt)
   {
-     Vertex *v = (Vertex*) &i->first;
-     cout << src->id << " : " << v->id << endl;
-     if(*v != *src && v->pi)
-     {
-       pair<string, string> k = make_pair(v->id, v->pi->id);
-       pd[k] = v->d;
-     }
+    cout << vtgt->id << " -> ";
+    Vertex* rent = vtgt->pi;
+    while(rent)
+    {
+      cout << rent->id ;
+      rent = rent->pi;
+      if(rent) cout << " -> ";
+    }
+    cout << endl;
+
+    VertexEntry ve(src);
+    set<VertexEntry>::iterator sit = s.find(ve);
+    if(sit != s.end())
+    {
+      VertexEntry ve = *sit;
+      cout << "Total Distance: " << ve.v->d << endl;
+    }
   }
 
   return pd;
@@ -112,11 +226,25 @@ void PRINT_APSP(map< pair<string, string>, double> & apsp)
   }
 }
 
-int main()
+int main(int argc, char* argv[])
 {
+  string mapfile;
 
+  if(argc == 2)
+  { 
+   stringstream s;
+
+    s << argv[1];
+    s >> mapfile;
+    make_graph(mapfile);
+  }
+  else
+  {
+    make_graph();
+  }
+  get_input();
+/*
   Graph g(false, true);
-
   g.add_edge("0", "1", 4);
   g.add_edge("0", "7", 8);
   g.add_edge("1", "2", 8);
@@ -131,12 +259,12 @@ int main()
   g.add_edge("6", "7", 1);
   g.add_edge("6", "8", 6);
   g.add_edge("7", "8", 7);
-
-  cout << g << endl;
-  Vertex* src = g.get_vertex("0");
+*/
+  //cout << g << endl;
+  Vertex* src = g.get_vertex(srcstr);
+  Vertex* tgt = g.get_vertex(tgtstr);
   map< pair<string, string>, double> r;
-  DIJKSTRA(g, src, r);
-  PRINT_APSP(r);
+  DIJKSTRA(g, src, tgt, r);
 
   return 0;
 }

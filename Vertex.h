@@ -314,6 +314,11 @@ class Vertex
   bool operator<(const Vertex & rhs) const { return id < rhs.id; };
 
   /**
+   * Greater than operator overload
+   */
+  bool operator>(const Vertex & rhs) const { return !(*this < rhs); };
+
+  /**
    * Converts EColour enum to string
    */
   string get_color(const EColor & c)

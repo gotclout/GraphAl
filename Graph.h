@@ -451,6 +451,17 @@ class Graph
     return i < E.size() && i > -1 ? &E[i] : 0;
   };
 
+  Edge* get_edge(Vertex* u, Vertex* v)
+  {
+    for(size_t i = 0; i < E.size(); ++i)
+    {
+      if(E[i].u->id == u->id && E[i].v->id == v->id)return &E[i];
+      //if(E[i].u->id == v->id && E[i].v->id == u->id)return &E[i];
+    }
+
+    return 0;
+  }
+
   /**
    * Retrieve vertex with the specified id
    */
