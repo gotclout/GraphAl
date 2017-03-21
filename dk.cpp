@@ -88,59 +88,91 @@ void get_input()
 /**
  *
  */
-void make_graph(string input = "./doc/sample.txt")
+bool make_graph(string input = "./doc/sample.txt")
 {
-  int i, u, v;
+  int          i  = 0;
+  bool         ok = true;
+  Point        p;
+  string       s;
+  stringstream ss;
+  Vertex       *u,
+               *v;
+
+  cout << "Generating graph from file:  " << input << endl;
 
   ifstream in(input.c_str(), ios::in);
 
-  stringstream ss;
-
-  cout << "Generating graph from file:  " << input << endl;
   if(in.is_open())
   {
     in >> NV >> NE;
 
     cout << "Map contains " << NV << " verticies (cities) and "
-         << NE << " edges" << endl;
+         << NE << " edges" << endl
+         << "Generating city coordinates..." << endl;
 
-    cout << "Adding cities to graph..." << endl;
-    Point p;
-    for(i = 0; i < NV; ++i)
+    for( ; i < NV; ++i)
     {
-      in >> p.idx;
-      in >> p.x;
-      in >> p.y;
+      Vertex vtx;
 
-      cities[p.idx] = p;
+      in >> vtx.p.idx;
+      in >> vtx.p.x;
+      in >> vtx.p.y;
+
+      ss << vtx.p.idx;
+      vtx.id = ss.str();
+      ss.str(""); ss.clear();
+
+      g.add_vertex(vtx);
     }
 
-    cout << "Cities added to graph" << endl;
-    cout << "Adding edges to graph..." << endl;
-    u = v = 0;
-    for(i = 0; i < NE; ++i)
-    { 
-      in >> u;
-      in >> v;
-      
-      ss << u;
-      Vertex vu(ss.str());
-      ss.str(""); ss.clear();
-      ss << v;
-      Vertex vv(ss.str());
-      ss.str(""); ss.clear();
-      vu.p = cities[u];
-      vv.p = cities[v]; 
-      
-      g.add_edge(vu, vv, cities[u].distance(cities[v]));
+    cout << "Generated " << cities.size() << " city coordinates" << endl
+         << "Connecting edges between cities in graph..." << endl;
+
+    for(i = 0; i < NE && ok; ++i)
+    {
+      in >> s;
+      u = g.get_vertex(s);
+      in >> s;
+      v = g.get_vertex(s);
+
+      if(u && v)
+      {
+        cout << u->id << "->" << v->id << " | " << u->distance(*v)
+             << endl;
+        g.add_edge(u, v, u->distance(*v));
+      }
+      else
+      {
+        cerr << "Error: Could not locate verticies exiting..." << endl;
+        ok = false;
+      }
     }
 
-    cout << "Edges added to graph" << endl;
+    if (ok) cout << "Connected " << g.esize() << " edges" << endl;
+
     in.close();
   }
-  else
+  else cerr << "Could not open: " << input << " for reading" << endl;
+
+  return ok;
+}
+
+#define extract_min(q, u) { u = q.top().v; q.pop(); }
+
+/**
+ *
+ */
+void print_q(priority_queue<VertexEntry, vector<VertexEntry>, std::greater<VertexEntry> >& pq)
+{
+  cout << "Rendering Priority Queue..." << endl;
+  priority_queue<VertexEntry, vector<VertexEntry>, std::greater<VertexEntry> > c;
+  c = pq;
+  while(!c.empty())
   {
-    cout << "Could not open: " << input << " for reading" << endl;
+    VertexEntry* ve = (VertexEntry*) &c.top();
+    Vertex* u = ve->v;
+    cout << "extract-min: " << "u[" << u->id << "]: " << u->d << endl;
+    c.pop();
   }
 }
 
@@ -154,38 +186,36 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
   set<VertexEntry> s;
   float w;
 
-  g.init(src);
+  g.init_single_src(src);
   priority_queue<VertexEntry, vector<VertexEntry>, std::greater<VertexEntry> > pq;
 
   cout << "Dijkstra Initialized Using Min Priority Queue..." << endl;
+
   for(VertexMapIt i = g.VE.begin(); i != g.VE.end(); ++i)
   {
-    Vertex* v = (Vertex*) &i->first;
-    if(*v != *src)
-    {
-      v->d = INT_MAX - 10000; //TODOO FIXME INF
-    }
+    v = (Vertex*) &i->first;
     VertexEntry ve(v);
     pq.push(ve);
   }
 
+  print_q(pq);
+
   while(!pq.empty())
   {
+    //extract_min(pq, u);
+    //s.insert(VertexEntry(u));
     VertexEntry* ve = (VertexEntry*) &pq.top();
     u = ve->v;
     s.insert(*ve);
     pq.pop();
-    cout << "extractmin: " << u->id << " : " << u->d << endl;
-    set<VertexEntry>::iterator o = s.find(*ve);
-    if(o != s.end()){
-    VertexEntry ove = *o;
-    float oe = o->v->d;}
+    cout << "extract-min: " << u->id << " : " << u->d << endl;
     AdjListIt ait = u->adj->begin();
     for( ; ait != u->adj->end(); ++ait)
     {
       v = *ait;
-      e = g.get_edge(u, v);
-      w = e->cap;
+      w = g.get_edge(u, v)->cap;
+      cout << "ud[" << u->id << "]: " << u->d << " vd[" << v->id << "]: "
+           << v->d << " w: " << w << endl;
       g.relax(u, v, w);/*
       if(g.relax(*u, *v, e->cap))
       {
@@ -193,6 +223,7 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
         pd[k] = v->d;
       }*/
     }
+    cout << "Vertex[" << u->id << "] processed" << endl;
   }
 
   cout << "All pairs shortest path" << endl;
@@ -230,7 +261,9 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
 
   return pd;
 }
-
+/**
+ *
+ */
 void PRINT_APSP(map< pair<string, string>, double> & apsp)
 {
   cout << "Rendering APSP...\n";
@@ -253,23 +286,29 @@ void PRINT_APSP(map< pair<string, string>, double> & apsp)
   }
 }
 
+/**
+ *
+ */
 int main(int argc, char* argv[])
 {
   string mapfile;
+  bool ok = true;
 
   if(argc == 2)
-  { 
+  {
    stringstream s;
 
     s << argv[1];
     s >> mapfile;
-    make_graph(mapfile);
+    ok = make_graph(mapfile);
   }
   else
   {
-    make_graph();
+    ok = make_graph();
   }
-  get_input();
+  if(ok)
+  {
+    get_input();
 /*
   Graph g(false, true);
   g.add_edge("0", "1", 4);
@@ -288,10 +327,18 @@ int main(int argc, char* argv[])
   g.add_edge("7", "8", 7);
 */
   //cout << g << endl;
-  Vertex* src = g.get_vertex(srcstr);
-  Vertex* tgt = g.get_vertex(tgtstr);
-  map< pair<string, string>, double> r;
-  DIJKSTRA(g, src, tgt, r);
+    Vertex *src = g.get_vertex(srcstr),
+           *tgt = g.get_vertex(tgtstr);
+    if(!src)
+      cout << "Error: Could not retrive source city " << srcstr << endl;
+    else if(!src)
+      cout << "Error: Could not retrive destination city " << tgtstr << endl;
+    else
+    {
+      map< pair<string, string>, double> r;
+      DIJKSTRA(g, src, tgt, r);
+    }
+  }
 
   return 0;
 }

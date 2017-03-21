@@ -107,10 +107,10 @@ class Vertex
   AdjList* adj;   //adjacent verticies
   Vertex*  pi;    //parent
   EColor   color; //state
-  int      d,     //discovery time
-           f,     //finish time
-           l,     //lowest
+  double   d,     //discovery time
            mcap;  //min capacity of path to vertex
+  int      f,     //finish time
+           l;     //lowest
   double  maxcap,
           mincap;
   string   id;    //uid
@@ -127,7 +127,8 @@ class Vertex
     adj   = 0;
     pi    = 0;
     color = eUndefined;
-    d     = l = f = -1;
+    d     = 0;
+    l     = f = -1;
     id    = "DEFAULT";
     mcap  = INT_MAX;
       aid = ppid;
@@ -150,7 +151,8 @@ class Vertex
     pi    = 0;
     color = eUndefined;
     id    = pId;
-    d     = l = f = -1;
+    d     = 0;
+    l     = f = -1;
     mcap  = INT_MAX;
       aid = ppid;
     if(ppid == -1)

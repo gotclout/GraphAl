@@ -4,6 +4,7 @@
 #include <sstream>
 #include <set>
 #include <queue>
+#include <limits>
 
 #include "Vertex.h"
 #include "FifoQueue.h"
@@ -82,9 +83,9 @@ class Edge
 
   Vertex* u,       // start vertex
         * v;       // end vertex
-  string  id;       // uid
-  double     flow,     // flow of the current edge
-          cap;      // capacity of the edge
+  string  id;      // uid
+  double  flow,    // flow of the current edge
+          cap;     // capacity of the edge
 
   /**
    * Default construct
@@ -238,6 +239,23 @@ class Graph
   /**
    *
    */
+  void init_single_src(Vertex* s)
+  {
+    Vertex* v;
+
+    for(VertexMapIt i = VE.begin(); i != VE.end(); ++i)
+    {
+      v     = (Vertex*) &i->first;
+      v->d  = std::numeric_limits<double>::infinity();
+      v->pi = NIL;
+    }
+
+    s->d = 0;
+  };
+
+  /**
+   *
+   */
   void init(Vertex* v = NIL)
   {
     for(VertexMapIt i = VE.begin(); i != VE.end(); ++i)
@@ -250,6 +268,34 @@ class Graph
     if(v) v->d = 0; //if single source
   };
 
+  /**
+   *
+   */
+  bool add_vertex(Vertex & vtx)
+  {
+    bool rval = true;
+
+    VertexMapIt vit = VE.find(Vertex(vtx.id)),
+                beg = VE.begin();
+    if(vit == VE.end())
+    {
+      vit = VE.insert(beg, VertexMapType(vtx, AdjList()));
+    }
+    else
+    {
+      rval = false;
+    }
+
+    return rval;
+  };
+
+  /**
+   *
+   */
+  void add_edge(Vertex* u, Vertex* v, double w = -1)
+  {
+    return add_edge(*u, *v, w);
+  }
   void add_edge(Vertex & u, Vertex & v, double w = -1)
   {
     VertexMapIt uit, vit, beg = VE.begin();
@@ -258,17 +304,15 @@ class Graph
 
     uit = VE.find(Vertex(u.id));
     if(uit == VE.end())
-      uit = VE.insert(beg, VertexMapType(Vertex(u.id), AdjList()));
+      uit = VE.insert(beg, VertexMapType(u, AdjList()));
     uvt = (Vertex*)&(uit->first);
-    uvt->p = u.p;
 
     if(!uvt->adj) uvt->adj = (AdjList*)& uit->second;
 
     vit = VE.find(Vertex(v.id));
     if(vit == VE.end())
-      vit = VE.insert(beg, VertexMapType(Vertex(v), AdjList()));
+      vit = VE.insert(beg, VertexMapType(v, AdjList()));
     vvt = (Vertex*)&(vit->first);
-    vvt->p = v.p;
 
     if(!vvt->adj) vvt->adj = (AdjList*)& vit->second;
 
@@ -288,7 +332,7 @@ class Graph
    * @param int u is the identifier for the first vertex
    * @param int v is the identifier for the second vertex
    */
-  void add_edge(string u, string v, int w = -1)
+  void add_edge(string u, string v, double w = -1)
   {
     VertexMapIt uit, vit, beg = VE.begin();
     Vertex* uvt, //u vertex ptr
@@ -321,7 +365,7 @@ class Graph
   /**
    * Updates an edge flow and its reverse edge by m
    */
-  void update_edge(Vertex u, Vertex v, int m)
+  void update_edge(Vertex u, Vertex v, double m)
   {
     for(size_t i = 0; i < E.size(); ++i)
     {
@@ -350,7 +394,7 @@ class Graph
    * @param int w
    * @return bool
    */
-  bool relax(Vertex* & u, Vertex* & v, int w)
+  bool relax(Vertex* & u, Vertex* & v, double w)
   {
     bool ret = false;
 
@@ -366,7 +410,8 @@ class Graph
 
     return ret;
   }
-  bool relax(Vertex & u, Vertex & v, int w)
+
+  bool relax(Vertex & u, Vertex & v, double w)
   {
     bool ret = false;
 
@@ -624,7 +669,6 @@ class Graph
         Vertex v  = *(epv[i]->v);
         string id = v.id;
         double w  = epv[i]->cap;
-        //cout << u.id << "," << v.id << "," << count << endl;
         if (count == pw)
         {
           if(u.p.idx < v.p.idx )
