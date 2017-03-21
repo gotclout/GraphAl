@@ -16,13 +16,23 @@ class VertexEntry
   public:
 
   Vertex* v;
-  static int idc;
+  //static int idc;
 
   VertexEntry(const Vertex* pV)
   {
     v = (Vertex*) &(*pV);
   }
-
+/*
+  VertexEntry& operator=(const VertexEntry & rhs)
+  {
+    if(this != &rhs)
+    {
+      if(rhs.v){ v = new Vertex(*rhs.v); }
+      //v = (Vertex*) &(*rhs.v);
+    }
+    return *this;
+  }
+*/
   bool operator==(const VertexEntry & rhs)
   {
     return *v == *(rhs.v);
@@ -41,7 +51,7 @@ class VertexEntry
 
 };
 
-int VertexEntry::idc = 0;
+//int VertexEntry::idc = 0;
 bool operator==(VertexEntry lhs, VertexEntry rhs) { return *lhs.v == *rhs.v;    };
 bool operator>(VertexEntry lhs, VertexEntry rhs)  { return lhs.v->d > rhs.v->d; };
 bool operator<(VertexEntry lhs, VertexEntry rhs)  { return lhs.v->d < rhs.v->d; };
@@ -163,12 +173,13 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
   {
     VertexEntry* ve = (VertexEntry*) &pq.top();
     u = ve->v;
+    s.insert(*ve);
     pq.pop();
     cout << "extractmin: " << u->id << " : " << u->d << endl;
-    s.insert(*ve);
     set<VertexEntry>::iterator o = s.find(*ve);
+    if(o != s.end()){
     VertexEntry ove = *o;
-    float oe = o->v->d;
+    float oe = o->v->d;}
     AdjListIt ait = u->adj->begin();
     for( ; ait != u->adj->end(); ++ait)
     {
@@ -208,7 +219,7 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
     }
     cout << endl;
 
-    VertexEntry ve(src);
+    VertexEntry ve(tgt);
     set<VertexEntry>::iterator sit = s.find(ve);
     if(sit != s.end())
     {
