@@ -142,17 +142,18 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
   Vertex *v, *u;
   Edge* e;
   set<VertexEntry> s;
+  float w;
 
   g.init(src);
-
   priority_queue<VertexEntry, vector<VertexEntry>, std::greater<VertexEntry> > pq;
 
+  cout << "Dijkstra Initialized Using Min Priority Queue..." << endl;
   for(VertexMapIt i = g.VE.begin(); i != g.VE.end(); ++i)
   {
     Vertex* v = (Vertex*) &i->first;
     if(*v != *src)
     {
-      v->d = INT_MAX - 1000;
+      v->d = INT_MAX - 10000; //TODOO FIXME INF
     }
     VertexEntry ve(v);
     pq.push(ve);
@@ -160,23 +161,38 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
 
   while(!pq.empty())
   {
-    VertexEntry ve = pq.top();
-    u = ve.v;
+    VertexEntry* ve = (VertexEntry*) &pq.top();
+    u = ve->v;
     pq.pop();
-    s.insert(u);
-
+    cout << "extractmin: " << u->id << " : " << u->d << endl;
+    s.insert(*ve);
+    set<VertexEntry>::iterator o = s.find(*ve);
+    VertexEntry ove = *o;
+    float oe = o->v->d;
     AdjListIt ait = u->adj->begin();
     for( ; ait != u->adj->end(); ++ait)
     {
       v = *ait;
       e = g.get_edge(u, v);
+      w = e->cap;
+      g.relax(u, v, w);/*
       if(g.relax(*u, *v, e->cap))
       {
         pair<string, string> k = make_pair(u->id, v->id);
         pd[k] = v->d;
-      }
+      }*/
     }
   }
+
+  cout << "All pairs shortest path" << endl;
+
+  for(set<VertexEntry>::iterator vei = s.begin(); vei != s.end(); ++vei)
+  {
+    VertexEntry ve = *vei;
+    cout << "v[" << ve.v->id << "]: " << ve.v->d << endl;
+  }
+
+  cout << "All pairs shortest path complete...rendering path" << endl;
 
   Vertex* vtgt = g.get_vertex(*tgt);
 

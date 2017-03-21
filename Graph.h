@@ -350,6 +350,22 @@ class Graph
    * @param int w
    * @return bool
    */
+  bool relax(Vertex* & u, Vertex* & v, int w)
+  {
+    bool ret = false;
+
+    if(weighted)
+    {
+      if(u->d + w < v->d)
+      {
+        v->d = u->d + w;
+        v->pi = u;
+        ret = true;
+      }
+    }
+
+    return ret;
+  }
   bool relax(Vertex & u, Vertex & v, int w)
   {
     bool ret = false;
@@ -456,7 +472,6 @@ class Graph
     for(size_t i = 0; i < E.size(); ++i)
     {
       if(E[i].u->id == u->id && E[i].v->id == v->id)return &E[i];
-      //if(E[i].u->id == v->id && E[i].v->id == u->id)return &E[i];
     }
 
     return 0;
