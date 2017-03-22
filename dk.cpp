@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <fstream>
+#include <algorithm> //heapify
 
 #include "Graph.h"
 
@@ -17,6 +18,11 @@ class VertexEntry
 
   Vertex* v;
   //static int idc;
+
+  VertexEntry()
+  {
+    v = 0;
+  }
 
   VertexEntry(const Vertex* pV)
   {
@@ -56,6 +62,7 @@ bool operator==(VertexEntry lhs, VertexEntry rhs) { return *lhs.v == *rhs.v;    
 bool operator>(VertexEntry lhs, VertexEntry rhs)  { return lhs.v->d > rhs.v->d; };
 bool operator<(VertexEntry lhs, VertexEntry rhs)  { return lhs.v->d < rhs.v->d; };
 
+bool mcomp(VertexEntry lhs, VertexEntry rhs)  { return lhs.v->d > rhs.v->d; };
 /*
 void set_input()
 {
@@ -151,6 +158,7 @@ bool make_graph(string input = "./doc/sample.txt")
     if (ok) cout << "Connected " << g.esize() << " edges" << endl;
 
     in.close();
+    cout << g << endl;
   }
   else cerr << "Could not open: " << input << " for reading" << endl;
 
@@ -187,7 +195,7 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
   float w;
 
   g.init_single_src(src);
-  priority_queue<VertexEntry, vector<VertexEntry>, std::greater<VertexEntry> > pq;
+  priority_queue<VertexEntry, vector<VertexEntry>, greater<VertexEntry> > pq;
 
   cout << "Dijkstra Initialized Using Min Priority Queue..." << endl;
 
@@ -198,12 +206,12 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
     pq.push(ve);
   }
 
-  print_q(pq);
 
   while(!pq.empty())
   {
     //extract_min(pq, u);
     //s.insert(VertexEntry(u));
+    print_q(pq);
     VertexEntry* ve = (VertexEntry*) &pq.top();
     u = ve->v;
     s.insert(*ve);
@@ -216,7 +224,13 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
       w = g.get_edge(u, v)->cap;
       cout << "ud[" << u->id << "]: " << u->d << " vd[" << v->id << "]: "
            << v->d << " w: " << w << endl;
-      g.relax(u, v, w);/*
+      if(g.relax(u, v, w))
+      {
+        cout << "-------RELAX-------" << endl;
+        cout << "ud[" << u->id << "]: " << u->d << " vd[" << v->id << "]: "
+             << v->d << " w: " << w << endl;
+        cout << "-------RELAX-------" << endl;
+      }/*
       if(g.relax(*u, *v, e->cap))
       {
         pair<string, string> k = make_pair(u->id, v->id);
@@ -224,6 +238,7 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
       }*/
     }
     cout << "Vertex[" << u->id << "] processed" << endl;
+    make_heap(const_cast<VertexEntry*>(&pq.top()), const_cast<VertexEntry*>(&pq.top()) + pq.size(), mcomp);
   }
 
   cout << "All pairs shortest path" << endl;
