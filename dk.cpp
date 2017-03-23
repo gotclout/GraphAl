@@ -12,6 +12,8 @@
 
 using namespace std;
 
+//TODO: Move to dk.h
+
 class VertexEntry
 {
   public:
@@ -184,62 +186,23 @@ void print_q(priority_queue<VertexEntry, vector<VertexEntry>, std::greater<Verte
   }
 }
 
+typedef priority_queue<VertexEntry, vector<VertexEntry>, greater<VertexEntry> > MinQueue;
+
+/**
+ * TODO: MinHeap, MaxHeap, Template Class Wrappers
+ */
+void Heapify(MinQueue & pq)
+{
+    make_heap(const_cast<VertexEntry*>(&pq.top()),
+              const_cast<VertexEntry*>(&pq.top()) + pq.size(), mcomp);
+}
+
 /**
  *
  */
-map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & tgt, map< pair<string, string>, double> pd)
+void print_path(Vertex* & tgt, set<VertexEntry> & s)
 {
-  Vertex *v, *u;
-  Edge* e;
-  set<VertexEntry> s;
-  float w;
-
-  g.init_single_src(src);
-  priority_queue<VertexEntry, vector<VertexEntry>, greater<VertexEntry> > pq;
-
-  cout << "Dijkstra Initialized Using Min Priority Queue..." << endl;
-
-  for(VertexMapIt i = g.VE.begin(); i != g.VE.end(); ++i)
-  {
-    v = (Vertex*) &i->first;
-    VertexEntry ve(v);
-    pq.push(ve);
-  }
-
-
-  while(!pq.empty())
-  {
-    //extract_min(pq, u);
-    //s.insert(VertexEntry(u));
-    print_q(pq);
-    VertexEntry* ve = (VertexEntry*) &pq.top();
-    u = ve->v;
-    s.insert(*ve);
-    pq.pop();
-    cout << "extract-min: " << u->id << " : " << u->d << endl;
-    AdjListIt ait = u->adj->begin();
-    for( ; ait != u->adj->end(); ++ait)
-    {
-      v = *ait;
-      w = g.get_edge(u, v)->cap;
-      cout << "ud[" << u->id << "]: " << u->d << " vd[" << v->id << "]: "
-           << v->d << " w: " << w << endl;
-      if(g.relax(u, v, w))
-      {
-        cout << "-------RELAX-------" << endl;
-        cout << "ud[" << u->id << "]: " << u->d << " vd[" << v->id << "]: "
-             << v->d << " w: " << w << endl;
-        cout << "-------RELAX-------" << endl;
-      }/*
-      if(g.relax(*u, *v, e->cap))
-      {
-        pair<string, string> k = make_pair(u->id, v->id);
-        pd[k] = v->d;
-      }*/
-    }
-    cout << "Vertex[" << u->id << "] processed" << endl;
-    make_heap(const_cast<VertexEntry*>(&pq.top()), const_cast<VertexEntry*>(&pq.top()) + pq.size(), mcomp);
-  }
+  Vertex* vtgt = g.get_vertex(*tgt);
 
   cout << "All pairs shortest path" << endl;
 
@@ -248,10 +211,6 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
     VertexEntry ve = *vei;
     cout << "v[" << ve.v->id << "]: " << ve.v->d << endl;
   }
-
-  cout << "All pairs shortest path complete...rendering path" << endl;
-
-  Vertex* vtgt = g.get_vertex(*tgt);
 
   if(vtgt)
   {
@@ -273,32 +232,65 @@ map< pair<string, string>, double> DIJKSTRA(Graph & g, Vertex* & src, Vertex* & 
       cout << "Total Distance: " << ve.v->d << endl;
     }
   }
-
-  return pd;
 }
+
 /**
  *
  */
-void PRINT_APSP(map< pair<string, string>, double> & apsp)
+double DIJKSTRA(Graph & g, Vertex* & src, Vertex* & tgt)
 {
-  cout << "Rendering APSP...\n";
+  double rval = 0;
 
-  if(apsp.size() < 1)
+  Vertex *v, *u;
+  Edge* e;
+  set<VertexEntry> s;
+  float w;
+
+  g.init_single_src(src);
+  priority_queue<VertexEntry, vector<VertexEntry>, greater<VertexEntry> > pq;
+
+  cout << "Dijkstra Initialized Using Min Priority Queue..." << endl;
+
+  for(VertexMapIt i = g.VE.begin(); i != g.VE.end(); ++i)
   {
-    cout << "None\n";
+    v = (Vertex*) &i->first;
+    VertexEntry ve(v);
+    pq.push(ve);
   }
-  else
-  {
-    map< pair<string, string>, double>::iterator i = apsp.begin(),
-                                        e = apsp.end();
 
-    while(i != e)
+  while(!pq.empty())
+  {
+    //extract_min(pq, u);
+    print_q(pq);
+    VertexEntry* ve = (VertexEntry*) &pq.top();
+    u = ve->v;
+    s.insert(*ve);
+    pq.pop();
+    cout << "extract-min: " << u->id << " : " << u->d << endl;
+
+    AdjListIt ait = u->adj->begin();
+    for( ; ait != u->adj->end(); ++ait)
     {
-      cout << i->first.first << " -> " << i->first.second << " "
-           << i->second << endl;
-      ++i;
+      v = *ait;
+      w = g.get_edge(u, v)->cap;
+      g.relax(u, v, w);
     }
+    cout << "Vertex[" << u->id << "] processed" << endl;
+    Heapify(pq);
   }
+
+  cout << "Rendering path" << endl;
+  print_path(tgt, s);
+
+  VertexEntry ve(tgt);
+  set<VertexEntry>::iterator sit = s.find(ve);
+  if(sit != s.end())
+  {
+    VertexEntry ve = *sit;
+    rval = ve.v->d;
+  }
+
+  return rval;
 }
 
 /**
@@ -321,27 +313,10 @@ int main(int argc, char* argv[])
   {
     ok = make_graph();
   }
+
   if(ok)
   {
     get_input();
-/*
-  Graph g(false, true);
-  g.add_edge("0", "1", 4);
-  g.add_edge("0", "7", 8);
-  g.add_edge("1", "2", 8);
-  g.add_edge("1", "7", 11);
-  g.add_edge("2", "3", 7);
-  g.add_edge("2", "8", 2);
-  g.add_edge("2", "5", 4);
-  g.add_edge("3", "4", 9);
-  g.add_edge("3", "5", 14);
-  g.add_edge("4", "5", 10);
-  g.add_edge("5", "6", 2);
-  g.add_edge("6", "7", 1);
-  g.add_edge("6", "8", 6);
-  g.add_edge("7", "8", 7);
-*/
-  //cout << g << endl;
     Vertex *src = g.get_vertex(srcstr),
            *tgt = g.get_vertex(tgtstr);
     if(!src)
@@ -349,10 +324,7 @@ int main(int argc, char* argv[])
     else if(!src)
       cout << "Error: Could not retrive destination city " << tgtstr << endl;
     else
-    {
-      map< pair<string, string>, double> r;
-      DIJKSTRA(g, src, tgt, r);
-    }
+      DIJKSTRA(g, src, tgt);
   }
 
   return 0;
