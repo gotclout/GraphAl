@@ -70,7 +70,7 @@ class Point
   };
 
   /**
-   *
+   * Compute point distance
    */
   double distance(const Point & pPoint)
   {
@@ -79,7 +79,7 @@ class Point
            d  = sqrt((dx*dx) + (dy*dy));
 
     return d;
-  }
+  };
 
   /**
    * Output operator
@@ -212,12 +212,12 @@ class Vertex
   }
 
   /**
-   *
+   * Compute distance to paramaterized Vertex
    */
-  double distance(const Vertex & pStart)
+  double distance(const Vertex & pVertex)
   {
-    return p.distance(pStart.p);
-  }
+    return p.distance(pVertex.p);
+  };
 
   /**
    *
@@ -283,7 +283,7 @@ class Vertex
     l      = src.l;
     f      = src.f;
     visited = src.visited;
-  }
+  };
 
   /**
    * Equivalence operator overload
