@@ -58,7 +58,7 @@ class DisjointSet
    */
   struct ThingPtrCompare
   {
-    bool operator()(const T* lhs, const T* rhs) { return *lhs < *rhs; };
+    bool operator()(T* const & lhs, T* const & rhs) const { return *lhs < *rhs; };
   };
 
   typedef map<T*, Set*, ThingPtrCompare> Forest;
